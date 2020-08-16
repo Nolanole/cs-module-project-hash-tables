@@ -10,6 +10,7 @@ class HashTableEntry:
 
 # Hash table can't have fewer than this many slots
 MIN_CAPACITY = 8
+MAX_LF = 0.7
 
 
 class HashTable:
@@ -22,6 +23,9 @@ class HashTable:
 
     def __init__(self, capacity):
         # Your code here
+        self.capacity = max(capacity, MIN_CAPACITY)
+        self.storage = [None] * self.capacity
+        self.item_count = 0
 
 
     def get_num_slots(self):
@@ -34,7 +38,7 @@ class HashTable:
 
         Implement this.
         """
-        # Your code here
+        return len(self.storage)
 
 
     def get_load_factor(self):
@@ -43,7 +47,7 @@ class HashTable:
 
         Implement this.
         """
-        # Your code here
+        return self.item_count / self.capacity
 
 
     def fnv1(self, key):
@@ -54,6 +58,7 @@ class HashTable:
         """
 
         # Your code here
+        pass
 
 
     def djb2(self, key):
@@ -61,8 +66,11 @@ class HashTable:
         DJB2 hash, 32-bit
 
         Implement this, and/or FNV-1.
-        """
-        # Your code here
+        """                                                                                                                               
+        hash = 5381
+        for x in key:
+            hash = (( hash << 5) + hash) + ord(x)
+        return hash & 0xFFFFFFFF
 
 
     def hash_index(self, key):
@@ -81,7 +89,26 @@ class HashTable:
 
         Implement this.
         """
-        # Your code here
+        hte = HashTableEntry(key, value)
+        index = self.hash_index(key)
+        curr = self.storage[index]
+        if not curr:
+            self.storage[index] = hte
+        else:
+            if curr.key == key:
+                curr.value = value
+            else:
+                while curr.next is not None:
+                    curr = curr.next
+                    if curr.key == key:
+                        curr.value = value
+                        break
+                curr.next = hte
+        self.item_count += 1
+
+        load_factor = self.get_load_factor()
+        if load_factor > 0.7:
+            self.resize(self.capacity * 2)
 
 
     def delete(self, key):
@@ -92,7 +119,31 @@ class HashTable:
 
         Implement this.
         """
-        # Your code here
+        index = self.hash_index(key)
+        curr = self.storage[index]
+        found = False
+        if not curr:
+            print('Warning, key not found')
+            return
+        if curr.key == key:
+            if curr.next:
+                self.storage[index] = curr.next
+            else:
+                self.storage[index] = None
+            found = True
+        else:
+            while curr.next != key and curr.next:
+                curr = curr.next
+            if curr.next == key:
+                curr.next = curr.next.next
+                found = True
+            else:
+                print('Warning, key not found')
+        if found:
+            self.item_count -= 1
+            load_factor = self.get_load_factor()
+            if load_factor < 0.2:
+                self.resize(self.capacity // 2)
 
 
     def get(self, key):
@@ -103,8 +154,18 @@ class HashTable:
 
         Implement this.
         """
-        # Your code here
-
+        index = self.hash_index(key)
+        curr = self.storage[index]
+        if not curr:
+            return None
+        if curr.key == key:
+            return curr.value
+        else:
+            while curr.next:
+                curr = curr.next
+                if curr.key == key:
+                    return curr.value
+            return None
 
     def resize(self, new_capacity):
         """
@@ -113,8 +174,18 @@ class HashTable:
 
         Implement this.
         """
-        # Your code here
+        old_storage = self.storage
+        old_count = self.item_count
+        self.capacity = new_capacity
+        self.storage = [None] * new_capacity
 
+        for i in old_storage:
+            curr = i
+            while curr:
+                self.put(curr.key, curr.value)
+                curr = curr.next
+
+        self.item_count = old_count
 
 
 if __name__ == "__main__":
@@ -138,6 +209,7 @@ if __name__ == "__main__":
     # Test storing beyond capacity
     for i in range(1, 13):
         print(ht.get(f"line_{i}"))
+    
 
     # Test resizing
     old_capacity = ht.get_num_slots()

@@ -1,6 +1,11 @@
 def no_dups(s):
-    # Your code here
-
+    word_set = set()
+    new_s = ''
+    for word in s.split():
+        if word not in word_set:
+            word_set.add(word)
+            new_s += word + ' '    
+    return new_s[:-1]
 
 
 if __name__ == "__main__":
